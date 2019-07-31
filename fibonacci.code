@@ -1,5 +1,8 @@
 % Test program = simple non-recursive fibonacci
 
+dbgext
+dbgext % diff shows how many C++ VM cycles 1 recursively interpreted cycle has
+
 movv top 31 % set call stack position
 
 % call fib_norec(param)
@@ -9,7 +12,7 @@ st top ra
 subv top 1
 jr @fib_norec
 
-dbgext
+dbgext % diff shows how many C++ VM cycles the whole Fibonacci program has
 hlt
 
 %%%

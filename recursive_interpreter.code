@@ -106,9 +106,7 @@ hlt
 %%%
 % run test program
 @test_program:
-  dbgext
-
-include fibonacci.code
+  include fibonacci.code
 
 %%%
 % program end marker
