@@ -1,5 +1,7 @@
 # self-vm
-VM that can self-interpret itself
+
+VM that can self-interpret itself.
+
 Copyright (C) 2019 Tomasz Dobrowolski
 
 # license
