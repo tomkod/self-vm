@@ -1,0 +1,119 @@
+include execute_program.code
+
+enum m_depth
+
+@main:
+
+addv m_depth 1
+dbg m_depth
+
+%jr @test_program
+
+% test how many base (c++ vm) cycles has one interpreted cycle
+dbgext
+dbgext
+
+movv m_base_offs 10000
+%lia ra @mainend 0  addv ra 1  mov m_data_offs ra
+movv m_data_offs 19998
+movv m_mem_size  100000
+
+mov top m_base_offs
+subv top 1
+
+% call copy_program(@test_program)
+mov ra m_depth
+subv ra 4
+jnz @copy_interpreter ra
+ lia param @test_program 0 %% enable this to run test program
+ jr @copy_interpreterend
+@copy_interpreter:
+ movv param -1 %% enable this to run itself (interpret vm in interpreted vm etc..)
+@copy_interpreterend:
+ lia ra 0 -12
+ st top ra
+ subv top 1
+ jr @copy_program
+
+% call copied code
+%mov ra m_data_offs  subv ra 1  ja ra
+
+% execute (interpret) copied code
+lia ra 0 -12  st top ra  subv top 1  jr @execute_program
+
+dbg ret_val
+
+hlt
+
+
+%%%
+% copy program starting at param to m_data_offs-1
+@copy_program:
+ mov ra param
+ mov rb m_data_offs
+ subv rb 1
+
+ def hlt_seq_count 3
+ movv rc hlt_seq_count % hlt sequence counter to find end marker
+
+ @copy_loop:
+   ld rd ra
+   mov re rd
+   subv re $hlt
+   jnz @copy_nohlt re
+    subv rc 1
+    jz @copy_loopend rc
+    jr @copy_nohltend
+   @copy_nohlt:
+    movv rc hlt_seq_count
+   @copy_nohltend:
+    % copy opcode, arg1 and arg2
+    st rb rd
+    subv ra 1
+    subv rb 1
+    ld rd ra
+    st rb rd
+    subv ra 1
+    subv rb 1
+    ld rd ra
+    st rb rd
+    subv ra 1
+    subv rb 1
+   jr @copy_loop
+ @copy_loopend:
+
+ % last halt
+ stv rb $hlt
+ subv rb 1
+ stv rb 0
+ subv rb 1
+ stv rb 0
+
+ mov rd m_data_offs
+ sub rd rb
+ dbg rd % copied program size
+
+ % set current vm depth
+ movv ra m_depth
+ add ra m_data_offs
+ st ra m_depth
+
+ addv top 1
+ ld ra top
+ ja ra
+
+
+%%%
+% run test program
+@test_program:
+  dbgext
+
+include fibonacci.code
+
+%%%
+% program end marker
+hlt
+hlt
+hlt
+
+@mainend:

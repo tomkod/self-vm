@@ -1,0 +1,664 @@
+%%% auto-generated begin: do not edit %%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Self-interpreting VM, Tomasz Dobrowolski (C) 2019 %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def top 0
+def ret_val 1
+def param 2
+def ra 3
+def rb 4
+def rc 5
+def rd 6
+def re 7
+def rcnt 8
+def m_inst_addr 9
+def m_base_offs 10
+def m_data_offs 11
+def m_mem_size 12
+
+jr @main
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Execute self-interpreting machine code   %%
+%% with safety checks.                      %%
+%% Arguments:                               %%
+%%  m_base_offs = machine memory start      %%
+%%  m_data_offs = machine data start        %%
+%%                (and code size limit)     %%
+%%  m_mem_size = total code+data size limit %%
+%% Returns:                                 %%
+%%  ret_val = error code or program ret_val %%
+%%  -11111112 = invalid jump location       %%
+%%  -11111113 = out-of-bounds memory access %%
+%%  -11111114 = division by zero            %%
+%%  -11111115 = infinite loop               %%
+%%  -11111116 = unknown operation code      %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+@execute_program:
+ mov m_inst_addr m_data_offs
+
+ movv rcnt 10000000 % execution limit
+ @execute_loop:
+  subv m_inst_addr 1
+  ld ra m_inst_addr
+  subv m_inst_addr 1
+  ld rb m_inst_addr
+  subv m_inst_addr 1
+  ld rc m_inst_addr
+
+  % ra = opcode, rb = arg1, rc = arg2
+
+  mov rd ra
+  jl @execute_error_opcode rd  % invalid opcode
+  subv rd $dbgext
+  jg @execute_error_opcode rd  % invalid opcode
+
+  % switch as binary search tree
+
+  mov rd ra
+  subv rd $st
+  jg @execute_after_st rd
+   mov rd ra
+   subv rd $jg
+   jg @execute_after_jg rd
+    mov rd ra
+    subv rd $ja
+    jg @execute_after_ja rd
+     mov rd ra
+     subv rd $hlt
+     jg @execute_after_hlt rd
+      mov rd ra
+      subv rd $nop
+      jg @execute_after_nop rd
+
+       % nop
+       jr @execute_continue
+
+      @execute_after_nop:
+
+       % hlt
+       jr @execute_loopend
+       jr @execute_continue
+
+     @execute_after_hlt:
+      mov rd ra
+      subv rd $jr
+      jg @execute_after_jr rd
+
+       % jr
+       mov rd rb
+       divv rd 3
+       mulv rd 3
+       sub rd rb
+       jnz @execute_error_jump rd
+       add rb m_inst_addr
+       mov rd rb
+       sub rd m_base_offs
+       jl @execute_error_bounds rd
+       sub rd m_mem_size
+       jge @execute_error_bounds rd
+       addv rb 3
+       mov m_inst_addr rb
+       jr @execute_continue
+
+      @execute_after_jr:
+
+       % ja
+       add rb m_data_offs
+       mov rd rb
+       sub rd m_base_offs
+       jl @execute_error_bounds rd
+       sub rd m_mem_size
+       jge @execute_error_bounds rd
+       ld rb rb
+       addv rb 1
+       mov rd rb
+       divv rd 3
+       mulv rd 3
+       sub rd rb
+       jnz @execute_error_jump rd
+       add rb m_data_offs
+       subv rb 3
+       mov rd rb
+       sub rd m_base_offs
+       jl @execute_error_bounds rd
+       sub rd m_mem_size
+       jge @execute_error_bounds rd
+       addv rb 3
+       mov m_inst_addr rb
+       jr @execute_continue
+
+    @execute_after_ja:
+     mov rd ra
+     subv rd $jz
+     jg @execute_after_jz rd
+      mov rd ra
+      subv rd $jnz
+      jg @execute_after_jnz rd
+
+       % jnz
+       add rc m_data_offs
+       mov rd rc
+       sub rd m_base_offs
+       jl @execute_error_bounds rd
+       sub rd m_mem_size
+       jge @execute_error_bounds rd
+       ld rc rc
+       jz @execute_skip_jnz rc
+       mov rd rb
+       divv rd 3
+       mulv rd 3
+       sub rd rb
+       jnz @execute_error_jump rd
+       add rb m_inst_addr
+       mov rd rb
+       sub rd m_base_offs
+       jl @execute_error_bounds rd
+       sub rd m_mem_size
+       jge @execute_error_bounds rd
+       addv rb 3
+       mov m_inst_addr rb
+       @execute_skip_jnz:
+       jr @execute_continue
+
+      @execute_after_jnz:
+
+       % jz
+       add rc m_data_offs
+       mov rd rc
+       sub rd m_base_offs
+       jl @execute_error_bounds rd
+       sub rd m_mem_size
+       jge @execute_error_bounds rd
+       ld rc rc
+       jnz @execute_skip_jz rc
+       mov rd rb
+       divv rd 3
+       mulv rd 3
+       sub rd rb
+       jnz @execute_error_jump rd
+       add rb m_inst_addr
+       mov rd rb
+       sub rd m_base_offs
+       jl @execute_error_bounds rd
+       sub rd m_mem_size
+       jge @execute_error_bounds rd
+       addv rb 3
+       mov m_inst_addr rb
+       @execute_skip_jz:
+       jr @execute_continue
+
+     @execute_after_jz:
+
+      % jg
+      add rc m_data_offs
+      mov rd rc
+      sub rd m_base_offs
+      jl @execute_error_bounds rd
+      sub rd m_mem_size
+      jge @execute_error_bounds rd
+      ld rc rc
+      jle @execute_skip_jg rc
+      mov rd rb
+      divv rd 3
+      mulv rd 3
+      sub rd rb
+      jnz @execute_error_jump rd
+      add rb m_inst_addr
+      mov rd rb
+      sub rd m_base_offs
+      jl @execute_error_bounds rd
+      sub rd m_mem_size
+      jge @execute_error_bounds rd
+      addv rb 3
+      mov m_inst_addr rb
+      @execute_skip_jg:
+      jr @execute_continue
+
+   @execute_after_jg:
+    mov rd ra
+    subv rd $jle
+    jg @execute_after_jle rd
+     mov rd ra
+     subv rd $jl
+     jg @execute_after_jl rd
+      mov rd ra
+      subv rd $jge
+      jg @execute_after_jge rd
+
+       % jge
+       add rc m_data_offs
+       mov rd rc
+       sub rd m_base_offs
+       jl @execute_error_bounds rd
+       sub rd m_mem_size
+       jge @execute_error_bounds rd
+       ld rc rc
+       jl @execute_skip_jge rc
+       mov rd rb
+       divv rd 3
+       mulv rd 3
+       sub rd rb
+       jnz @execute_error_jump rd
+       add rb m_inst_addr
+       mov rd rb
+       sub rd m_base_offs
+       jl @execute_error_bounds rd
+       sub rd m_mem_size
+       jge @execute_error_bounds rd
+       addv rb 3
+       mov m_inst_addr rb
+       @execute_skip_jge:
+       jr @execute_continue
+
+      @execute_after_jge:
+
+       % jl
+       add rc m_data_offs
+       mov rd rc
+       sub rd m_base_offs
+       jl @execute_error_bounds rd
+       sub rd m_mem_size
+       jge @execute_error_bounds rd
+       ld rc rc
+       jge @execute_skip_jl rc
+       mov rd rb
+       divv rd 3
+       mulv rd 3
+       sub rd rb
+       jnz @execute_error_jump rd
+       add rb m_inst_addr
+       mov rd rb
+       sub rd m_base_offs
+       jl @execute_error_bounds rd
+       sub rd m_mem_size
+       jge @execute_error_bounds rd
+       addv rb 3
+       mov m_inst_addr rb
+       @execute_skip_jl:
+       jr @execute_continue
+
+     @execute_after_jl:
+
+      % jle
+      add rc m_data_offs
+      mov rd rc
+      sub rd m_base_offs
+      jl @execute_error_bounds rd
+      sub rd m_mem_size
+      jge @execute_error_bounds rd
+      ld rc rc
+      jg @execute_skip_jle rc
+      mov rd rb
+      divv rd 3
+      mulv rd 3
+      sub rd rb
+      jnz @execute_error_jump rd
+      add rb m_inst_addr
+      mov rd rb
+      sub rd m_base_offs
+      jl @execute_error_bounds rd
+      sub rd m_mem_size
+      jge @execute_error_bounds rd
+      addv rb 3
+      mov m_inst_addr rb
+      @execute_skip_jle:
+      jr @execute_continue
+
+    @execute_after_jle:
+     mov rd ra
+     subv rd $ld
+     jg @execute_after_ld rd
+      mov rd ra
+      subv rd $lia
+      jg @execute_after_lia rd
+
+       % lia
+       add rb m_data_offs
+       mov rd rb
+       sub rd m_base_offs
+       jl @execute_error_bounds rd
+       sub rd m_mem_size
+       jge @execute_error_bounds rd
+       mov rd rc
+       add rd m_inst_addr
+       addv rd 2
+       sub rd m_data_offs
+       st rb rd
+       jr @execute_continue
+
+      @execute_after_lia:
+
+       % ld
+       add rb m_data_offs
+       mov rd rb
+       sub rd m_base_offs
+       jl @execute_error_bounds rd
+       sub rd m_mem_size
+       jge @execute_error_bounds rd
+       add rc m_data_offs
+       mov rd rc
+       sub rd m_base_offs
+       jl @execute_error_bounds rd
+       sub rd m_mem_size
+       jge @execute_error_bounds rd
+       ld rc rc
+       add rc m_data_offs
+       mov rd rc
+       sub rd m_base_offs
+       jl @execute_error_bounds rd
+       sub rd m_mem_size
+       jge @execute_error_bounds rd
+       ld rc rc
+       st rb rc
+       jr @execute_continue
+
+     @execute_after_ld:
+
+      % st
+      add rb m_data_offs
+      mov rd rb
+      sub rd m_base_offs
+      jl @execute_error_bounds rd
+      sub rd m_mem_size
+      jge @execute_error_bounds rd
+      ld rb rb
+      add rb m_data_offs
+      mov rd rb
+      sub rd m_base_offs
+      jl @execute_error_bounds rd
+      sub rd m_mem_size
+      jge @execute_error_bounds rd
+      add rc m_data_offs
+      mov rd rc
+      sub rd m_base_offs
+      jl @execute_error_bounds rd
+      sub rd m_mem_size
+      jge @execute_error_bounds rd
+      ld rc rc
+      st rb rc
+      jr @execute_continue
+
+  @execute_after_st:
+   mov rd ra
+   subv rd $movv
+   jg @execute_after_movv rd
+    mov rd ra
+    subv rd $sub
+    jg @execute_after_sub rd
+     mov rd ra
+     subv rd $mov
+     jg @execute_after_mov rd
+      mov rd ra
+      subv rd $stv
+      jg @execute_after_stv rd
+
+       % stv
+       add rb m_data_offs
+       mov rd rb
+       sub rd m_base_offs
+       jl @execute_error_bounds rd
+       sub rd m_mem_size
+       jge @execute_error_bounds rd
+       ld rb rb
+       add rb m_data_offs
+       mov rd rb
+       sub rd m_base_offs
+       jl @execute_error_bounds rd
+       sub rd m_mem_size
+       jge @execute_error_bounds rd
+       st rb rc
+       jr @execute_continue
+
+      @execute_after_stv:
+
+       % mov
+       add rb m_data_offs
+       mov rd rb
+       sub rd m_base_offs
+       jl @execute_error_bounds rd
+       sub rd m_mem_size
+       jge @execute_error_bounds rd
+       add rc m_data_offs
+       mov rd rc
+       sub rd m_base_offs
+       jl @execute_error_bounds rd
+       sub rd m_mem_size
+       jge @execute_error_bounds rd
+       ld rc rc
+       st rb rc
+       jr @execute_continue
+
+     @execute_after_mov:
+      mov rd ra
+      subv rd $add
+      jg @execute_after_add rd
+
+       % add
+       add rb m_data_offs
+       mov rd rb
+       sub rd m_base_offs
+       jl @execute_error_bounds rd
+       sub rd m_mem_size
+       jge @execute_error_bounds rd
+       ld re rb
+       add rc m_data_offs
+       mov rd rc
+       sub rd m_base_offs
+       jl @execute_error_bounds rd
+       sub rd m_mem_size
+       jge @execute_error_bounds rd
+       ld rc rc
+       add re rc
+       st rb re
+       jr @execute_continue
+
+      @execute_after_add:
+
+       % sub
+       add rb m_data_offs
+       mov rd rb
+       sub rd m_base_offs
+       jl @execute_error_bounds rd
+       sub rd m_mem_size
+       jge @execute_error_bounds rd
+       ld re rb
+       add rc m_data_offs
+       mov rd rc
+       sub rd m_base_offs
+       jl @execute_error_bounds rd
+       sub rd m_mem_size
+       jge @execute_error_bounds rd
+       ld rc rc
+       sub re rc
+       st rb re
+       jr @execute_continue
+
+    @execute_after_sub:
+     mov rd ra
+     subv rd $div
+     jg @execute_after_div rd
+      mov rd ra
+      subv rd $mul
+      jg @execute_after_mul rd
+
+       % mul
+       add rb m_data_offs
+       mov rd rb
+       sub rd m_base_offs
+       jl @execute_error_bounds rd
+       sub rd m_mem_size
+       jge @execute_error_bounds rd
+       ld re rb
+       add rc m_data_offs
+       mov rd rc
+       sub rd m_base_offs
+       jl @execute_error_bounds rd
+       sub rd m_mem_size
+       jge @execute_error_bounds rd
+       ld rc rc
+       mul re rc
+       st rb re
+       jr @execute_continue
+
+      @execute_after_mul:
+
+       % div
+       add rb m_data_offs
+       mov rd rb
+       sub rd m_base_offs
+       jl @execute_error_bounds rd
+       sub rd m_mem_size
+       jge @execute_error_bounds rd
+       ld re rb
+       add rc m_data_offs
+       mov rd rc
+       sub rd m_base_offs
+       jl @execute_error_bounds rd
+       sub rd m_mem_size
+       jge @execute_error_bounds rd
+       ld rc rc
+       jz @execute_error_divzero rc
+       div re rc
+       st rb re
+       jr @execute_continue
+
+     @execute_after_div:
+
+      % movv
+      add rb m_data_offs
+      mov rd rb
+      sub rd m_base_offs
+      jl @execute_error_bounds rd
+      sub rd m_mem_size
+      jge @execute_error_bounds rd
+      st rb rc
+      jr @execute_continue
+
+   @execute_after_movv:
+    mov rd ra
+    subv rd $mulv
+    jg @execute_after_mulv rd
+     mov rd ra
+     subv rd $subv
+     jg @execute_after_subv rd
+      mov rd ra
+      subv rd $addv
+      jg @execute_after_addv rd
+
+       % addv
+       add rb m_data_offs
+       mov rd rb
+       sub rd m_base_offs
+       jl @execute_error_bounds rd
+       sub rd m_mem_size
+       jge @execute_error_bounds rd
+       ld re rb
+       add re rc
+       st rb re
+       jr @execute_continue
+
+      @execute_after_addv:
+
+       % subv
+       add rb m_data_offs
+       mov rd rb
+       sub rd m_base_offs
+       jl @execute_error_bounds rd
+       sub rd m_mem_size
+       jge @execute_error_bounds rd
+       ld re rb
+       sub re rc
+       st rb re
+       jr @execute_continue
+
+     @execute_after_subv:
+
+      % mulv
+      add rb m_data_offs
+      mov rd rb
+      sub rd m_base_offs
+      jl @execute_error_bounds rd
+      sub rd m_mem_size
+      jge @execute_error_bounds rd
+      ld re rb
+      mul re rc
+      st rb re
+      jr @execute_continue
+
+    @execute_after_mulv:
+     mov rd ra
+     subv rd $dbg
+     jg @execute_after_dbg rd
+      mov rd ra
+      subv rd $divv
+      jg @execute_after_divv rd
+
+       % divv
+       add rb m_data_offs
+       mov rd rb
+       sub rd m_base_offs
+       jl @execute_error_bounds rd
+       sub rd m_mem_size
+       jge @execute_error_bounds rd
+       ld re rb
+       jz @execute_error_divzero rc
+       div re rc
+       st rb re
+       jr @execute_continue
+
+      @execute_after_divv:
+
+       % dbg
+       add rb m_data_offs
+       mov rd rb
+       sub rd m_base_offs
+       jl @execute_error_bounds rd
+       sub rd m_mem_size
+       jge @execute_error_bounds rd
+       ld rb rb
+       dbg rb
+       jr @execute_continue
+
+     @execute_after_dbg:
+
+      % dbgext
+      dbgext
+      jr @execute_continue
+
+  @execute_continue:
+
+  subv rcnt 1
+  jg @execute_loop rcnt
+  jr @execute_error_infloop
+ @execute_loopend:
+
+ mov ra m_data_offs
+ addv ra ret_val
+ ld ret_val ra
+
+ jr @execute_errorend
+ @execute_error_jump:
+  dbg rb
+  movv ret_val -11111112
+  jr @execute_errorend
+ @execute_error_bounds:
+  dbg rd
+  movv ret_val -11111113
+  jr @execute_errorend
+ @execute_error_divzero:
+  movv ret_val -11111114
+  jr @execute_errorend
+ @execute_error_infloop:
+  movv ret_val -11111115
+  jr @execute_errorend
+ @execute_error_opcode:
+  movv ret_val -11111116
+ @execute_errorend:
+
+ addv top 1
+ ld ra top
+ ja ra
+
+%%% auto-generated end %%%

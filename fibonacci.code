@@ -1,0 +1,35 @@
+% Test program = simple non-recursive fibonacci
+
+movv top 31 % set call stack position
+
+% call fib_norec(param)
+movv param 6
+lia ra 0 -12
+st top ra
+subv top 1
+jr @fib_norec
+
+dbgext
+hlt
+
+%%%
+% non-recursive fibonacci
+@fib_norec:
+  movv ra 1
+  movv rb 1
+  @fib_loop:
+    subv param 1
+    jle @fib_loopend param
+    mov rc ra
+    add rc rb
+    mov ra rb
+    mov rb rc
+    jr @fib_loop
+  @fib_loopend:
+
+  mov ret_val rb
+
+  addv top 1
+  ld ra top
+  ja ra
+
