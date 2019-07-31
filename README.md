@@ -33,3 +33,8 @@ the point of it!
 At the end it will print 13, which is indeed a 6th Fibonacci number,
 as in [ 1, 1, 3, 5, 8, 13 ] sequence.
 And VM memory dump (near 0 address).
+
+To generate VM self-interpreter, run "vm-gen execute_program.code".
+But since, "execute_program.code" is included in the repository,
+you don't really have to do that.
+
